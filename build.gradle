@@ -1,0 +1,166 @@
+description = "Biometrics Tutorials Android"
+
+apply plugin: 'com.android.application'
+
+def productRootDir = "../../../.."
+def productBinDir = new File(productRootDir, "Bin")
+def productBinAndroidDir = new File(productBinDir, "Android")
+def productLibAndroidDir = new File(productRootDir, "Lib/Android")
+def archUsed = "arm64-v8a,armeabi-v7a,x86"
+
+def usedNdfList = ["FacesDetect45.ndf",
+					"FacesDetect180.ndf",
+					"FacesDetectSegmentsAttributes.ndf",
+					"FacesDetectSegmentsOrientation.ndf",
+					"FacesDetectSegmentsFeaturePointsTrack.ndf",
+					"FacesDetectSegmentsLiveness.ndf",
+					"FacesCreateTemplateSmall.ndf",
+					"FacesCreateTemplateMedium.ndf",
+					"FacesDetect90.ndf",
+					"FacesDetectSegmentsFeaturePointsDetect.ndf",
+					"FacesDetectSegmentsOrientation90.ndf",
+					"FacesCreateTemplateQuality.ndf",
+					"Irises.ndf",
+					"Fingers.ndf",
+					"Voices.ndf"]
+
+buildscript {
+	System.properties['com.android.build.gradle.overrideVersionCheck'] = 'true'
+	repositories {
+		google()
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.android.tools.build:gradle:3.2.1'
+	}
+}
+
+android {
+	compileSdkVersion 27
+
+	defaultConfig {
+		minSdkVersion 19
+		targetSdkVersion 26
+
+		ndk {
+			abiFilters 'x86', 'armeabi-v7a', 'arm64-v8a'
+		}
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_1_8
+		targetCompatibility JavaVersion.VERSION_1_8
+	}
+	lintOptions {
+		abortOnError false
+	}
+	signingConfigs {
+		debug {
+			keyAlias 'CredenceIDPublicKey'
+			keyPassword 'CredenceID'
+			storeFile file('../../../../../CredencePublicKeys/PublicKey.jks')
+			storePassword 'CredenceID'
+		}
+		release {
+			keyAlias 'CredenceIDPublicKey'
+			keyPassword 'CredenceID'
+			storeFile file('../../../../../CredencePublicKeys/PublicKey.jks')
+			storePassword
+
+		}
+	}
+	buildTypes {
+		debug {
+			minifyEnabled false
+			//signingConfig signingConfigs.debug
+		}
+	}
+}
+
+gradle.projectsEvaluated {
+	tasks.withType(JavaCompile) {
+		options.compilerArgs << "-Xlint:deprecation"
+	}
+}
+
+task deleteTemporaryFiles(type: Delete) {
+	for (String file : usedNdfList) {
+		delete "${android.sourceSets.main.assets.srcDirs[0]}/data/${file}.jet"
+	}
+	delete "${android.sourceSets.main.jniLibs.srcDirs[0]}"
+}
+
+clean {
+	delete fileTree(dir: productBinAndroidDir , include: "${"biometrics-tutorials"}*.*")
+}
+
+task prepareNdfFiles(type: Copy) {
+	from "${productBinDir}/Data"
+	includes = usedNdfList
+	rename { String fileName ->
+		fileName.replace('.ndf', '.ndf.jet')
+	}
+	into "${android.sourceSets.main.assets.srcDirs[0]}/data"
+}
+
+int counter = 1
+archUsed.split(',').each {
+	String srcDir = "${productLibAndroidDir}/${it}"
+	String dstDir = "${android.sourceSets.main.jniLibs.srcDirs[0]}/${it}"
+	task "prepareNativeLibs$counter"(type: Copy) {
+		from srcDir
+		into dstDir
+		dependsOn(prepareNdfFiles)
+	}
+	tasks.preBuild.dependsOn("prepareNativeLibs$counter")
+	counter++
+}
+
+task publishApk(type: Copy) {
+	from "${project.buildDir}/outputs/apk/debug"
+	include "${project.archivesBaseName}-debug.apk"
+	rename "${project.archivesBaseName}-debug.apk", "${project.archivesBaseName}.apk"
+	into productBinAndroidDir
+}
+
+clean.dependsOn(deleteTemporaryFiles)
+prepareNdfFiles.dependsOn(clean)
+build.finalizedBy(publishApk)
+
+dependencies {
+	implementation ":neurotec-gui-android"
+	implementation ":neurotec-media-processing-android"
+	implementation ":neurotec-biometrics-android"
+	implementation ":neurotec-biometrics-client-android"
+
+	implementation ":neurotec-devices-fscanners-aratek-trustfinger-android"
+	implementation ":neurotec-devices-fscanners-suprema-biomini-android"
+	implementation ":neurotec-devices-fscanners-ekemp-android"
+	implementation ":neurotec-devices-fscanners-bluefin-android"
+	implementation ":neurotec-devices-multimodal-credenceid-android"
+	implementation ":neurotec-devices-fscanners-digitalpersona-uareu-android"
+	implementation ":neurotec-devices-fscanners-futronic-android"
+	implementation ":neurotec-devices-fscanners-aratek-android"
+	implementation ":neurotec-devices-fscanners-secugen-android"
+	implementation ":neurotec-devices-fscanners-integratedbiometrics-android"
+	implementation ":neurotec-devices-fscanners-nextbiometrics-android"
+	implementation ":neurotec-devices-fscanners-greenbit-android"
+	implementation ":neurotec-devices-fscanners-zkteco-android"
+	implementation ":neurotec-devices-fscanners-morpho-android"
+	implementation ":neurotec-devices-fscanners-bitel-android"
+	implementation ":neurotec-devices-irisscanners-iritech-irishield-android"
+	implementation ":neurotec-devices-irisscanners-mantra-android"
+	implementation ":neurotec-devices-media-android"
+	implementation ":neurotec-devices-android"
+	implementation(name:'neurotec-biometrics-gui-android', ext:'aar')
+	implementation project(":tutorials-utils")
+}
+
+repositories {
+	mavenLocal()
+	google()
+	jcenter()
+	mavenCentral()
+	flatDir {
+		dirs "${productBinAndroidDir}/"
+	}
+}

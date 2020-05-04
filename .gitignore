@@ -1,0 +1,15 @@
+.iml
+.gradle
+/local.properties
+/.idea
+*.iml
+.DS_Store
+/build
+.externalNativeBuild/cmake
+/captures
+/.project
+/.classpath
+/obj
+/libs/armeabi
+/libs/armeabi-v7a
+/projectFilesBackup

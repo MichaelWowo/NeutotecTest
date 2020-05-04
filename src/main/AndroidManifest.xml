@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	package="com.neurotec.tutorials.biometrics"
+	android:versionName="11.2.0.0"
+	android:versionCode="0" >
+
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+	<uses-permission android:name="android.permission.BLUETOOTH" />
+	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+	<uses-permission android:name="android.permission.CAMERA" />
+	<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+	<uses-feature android:name="android.hardware.camera" />
+
+	<application
+		tools:replace="android:name"
+		android:name="BiometricsTutorialsApp"
+		android:label="@string/app_name"
+		android:theme="@android:style/Theme.Holo.Light">
+
+		<activity android:name=".BiometricsTutorials"
+			android:screenOrientation="portrait">
+				<intent-filter>
+					<action android:name="android.intent.action.MAIN" />
+
+					<category android:name="android.intent.category.DEFAULT" />
+					<category android:name="android.intent.category.LAUNCHER" />
+				</intent-filter>
+		</activity>
+		<activity android:name="com.neurotec.samples.app.DirectoryViewer"
+			android:screenOrientation="portrait">
+		</activity>
+        <activity
+			android:name=".CredenceLivenessDetection"
+			android:label="Credence Liveness test"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+        <activity
+			android:name=".DetectFacialFeatures"
+			android:label="Detect facial features"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".EnrollFaceFromCamera"
+			android:label="Enroll face from camera"
+			android:screenOrientation="landscape">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".EnrollFaceFromImage"
+			android:label="Enroll face from image"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".DetectFacialFeaturesFromCamera"
+			android:label="Detect facial features from camera"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".DetectFacialFeaturesFromImageStream"
+			android:label="Detect facial features from image stream"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".EnrollFaceFromImageStream"
+			android:label="Enroll face from image stream"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+
+		<!-- Licensing -->
+		<activity
+			android:name="com.neurotec.licensing.gui.ActivationActivity"
+			android:theme="@android:style/Theme.Holo.Light"/>
+
+	</application>
+
+</manifest>

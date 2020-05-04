@@ -1,0 +1,3 @@
+rootProject.name = 'biometrics-tutorials-android'
+include 'tutorials-utils'
+project(':tutorials-utils').projectDir = new File("../../../Common/Android/utils")
