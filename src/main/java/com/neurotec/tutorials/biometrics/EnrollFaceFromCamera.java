@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -26,6 +27,7 @@ import com.neurotec.biometrics.NBiometric;
 import com.neurotec.biometrics.NBiometricCaptureOption;
 import com.neurotec.biometrics.NBiometricStatus;
 import com.neurotec.biometrics.NFace;
+import com.neurotec.biometrics.NLivenessMode;
 import com.neurotec.biometrics.NSubject;
 import com.neurotec.biometrics.NTemplateSize;
 import com.neurotec.biometrics.client.NBiometricClient;
@@ -55,8 +57,8 @@ public final class EnrollFaceFromCamera extends BaseActivity {
 	// ONE of the below listed licenses is required for unlocking this sample's functionality. Choose a license that you currently have on your device.
 	// If you are using a TRIAL version - choose any of them.
 
-	private static final String[] LICENSES = new String[]{"FaceExtractor"};
-	//private static final String[] LICENSES = new String[]{"FaceClient"};
+	//private static final String[] LICENSES = new String[]{"FaceExtractor"};
+	private static final String[] LICENSES = new String[]{"FaceClient"};
 	//private static final String[] LICENSES = new String[]{"FaceFastExtractor"};
 
 	//=========================================================================
@@ -184,6 +186,7 @@ public final class EnrollFaceFromCamera extends BaseActivity {
 	protected void onDestroy() {
 		super.onDestroy();
 		hideProgress();
+		mBiometricClient.setFacesLivenessMode(NLivenessMode.PASSIVE);
 		if (mBiometricClient != null) {
 			mBiometricClient.cancel();
 			mBiometricClient.dispose();
@@ -213,6 +216,9 @@ public final class EnrollFaceFromCamera extends BaseActivity {
 					throw new RuntimeException("No cameras found, exiting!");
 				}
 				// Select the first available camera
+				if (count > 1) {
+					return deviceManager.getDevices().get(1);
+				}
 				return deviceManager.getDevices().get(0);
 			}
 			case RTSP_CAMERA: {
@@ -245,6 +251,8 @@ public final class EnrollFaceFromCamera extends BaseActivity {
 			subject.getFaces().add(face);
 			NCamera camera = (NCamera) connectDevice(mBiometricClient.getDeviceManager(), url, source);
 			mBiometricClient.setFaceCaptureDevice(camera);
+
+			mBiometricClient.setFacesLivenessMode(NLivenessMode.PASSIVE);
 			mBiometricClient.capture(subject, subject, completionHandler);
 			showMessage(getString(R.string.msg_turn_camera_to_face));
 		} catch (Exception ex) {
@@ -257,6 +265,7 @@ public final class EnrollFaceFromCamera extends BaseActivity {
 	}
 
 	private void showMessage(final String message) {
+		Log.d("CID", "showMessage: " + message);
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {

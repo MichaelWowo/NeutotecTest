@@ -25,6 +25,7 @@ import com.neurotec.biometrics.NFace;
 import com.neurotec.biometrics.NLAttributes;
 import com.neurotec.biometrics.NLFeaturePoint;
 import com.neurotec.biometrics.NLProperty;
+import com.neurotec.biometrics.NLivenessMode;
 import com.neurotec.biometrics.NSubject;
 import com.neurotec.biometrics.NTemplateSize;
 import com.neurotec.biometrics.client.NBiometricClient;
@@ -237,6 +238,8 @@ public class DetectFacialFeaturesFromCamera extends BaseActivity {
 		face.setCaptureOptions(EnumSet.of(NBiometricCaptureOption.STREAM));
 		// Add NFace to NSubject
 		subject.getFaces().add(face);
+
+		mBiometricClient.setFacesLivenessMode(NLivenessMode.SIMPLE);
 
 		return mBiometricClient.createTask(EnumSet.of(NBiometricOperation.CAPTURE,
 				NBiometricOperation.DETECT_SEGMENTS,

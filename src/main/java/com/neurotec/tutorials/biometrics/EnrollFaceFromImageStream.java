@@ -11,9 +11,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -22,6 +25,8 @@ import com.neurotec.biometrics.NBiometricStatus;
 import com.neurotec.biometrics.NBiometricTask;
 import com.neurotec.biometrics.NFace;
 import com.neurotec.biometrics.NLAttributes;
+import com.neurotec.biometrics.NLivenessAction;
+import com.neurotec.biometrics.NLivenessMode;
 import com.neurotec.biometrics.NSubject;
 import com.neurotec.biometrics.NTemplateSize;
 import com.neurotec.biometrics.client.NBiometricClient;
@@ -35,12 +40,15 @@ import com.neurotec.samples.app.BaseActivity;
 import com.neurotec.samples.app.DirectoryViewer;
 import com.neurotec.samples.licensing.LicensingManager;
 import com.neurotec.samples.util.NImageUtils;
+import com.neurotec.util.NCollectionChangedAction;
+import com.neurotec.util.event.NCollectionChangeEvent;
+import com.neurotec.util.event.NCollectionChangeListener;
 
 public class EnrollFaceFromImageStream extends BaseActivity {
 
-	private static final String TAG = "EnrollFaceFromImageStream";
+	private static final String TAG = "CID";
 	private static final int REQUEST_CODE_GET_RECORD = 1;
-	private static final String IMAGES_FOLDER_PATH = "Neurotechnology/Data/biometrics-tutorials/input/faceImageCollection/";
+	private static final String IMAGES_FOLDER_PATH = "Neurotechnology/Data/biometrics-tutorials/output/";
 	private static final String ANDROID_ASSET_DESCRIPTOR = "file:///android_asset/";
 
 	//=========================================================================
@@ -49,9 +57,10 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 	// ONE of the below listed licenses is required for unlocking this sample's functionality. Choose a license that you currently have on your device.
 	// If you are using a TRIAL version - choose any of them.
 
-	private static final String[] LICENSES = new String[]{"FaceExtractor"};
-	//private static final String[] LICENSES = new String[]{"FaceClient"};
+	//private static final String[] LICENSES = new String[]{"FaceExtractor"};
+	private static final String[] LICENSES = new String[]{"FaceClient"};
 	//private static final String[] LICENSES = new String[]{"FaceFastExtractor"};
+
 
 	//=========================================================================
 
@@ -63,6 +72,9 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 
 	private NBiometricClient mBiometricClient;
 
+	private ArrayList<NLAttributes> monitoredAttributes = new ArrayList<NLAttributes>();
+	private static NFace face = new NFace();
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -71,38 +83,38 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 
 		mStatus = (TextView) findViewById(R.id.tutorials_results);
 
-		mRTSPAddress = (EditText) findViewById(R.id.tutorials_field_1);
-		mRTSPAddress.setHint(getString(R.string.msg_url_for_rtsp_camera));
-
-		mRTSPCamera = (Button) findViewById(R.id.tutorials_button_1);
-		mRTSPCamera.setText(getString(R.string.msg_rtsp_camera));
-		mRTSPCamera.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				if (validateRTSPAddress(mRTSPAddress.getText().toString())) {
-					NMediaSource source;
-					try {
-						source = NMediaSource.fromUrl(mRTSPAddress.getText().toString());
-						startEnrolling(source, null);
-					} catch (IOException e) {
-						showMessage(e.toString());
-						Log.e(TAG, "Exception", e);
-					}
-				} else {
-					showMessage(getString(R.string.msg_no_rtsp_url));
-				}
-			}
-		});
-		mLoadFile = (Button) findViewById(R.id.tutorials_button_2);
-		mLoadFile.setText(getString(R.string.msg_video_file));
-		mLoadFile.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				Intent intent = new Intent(EnrollFaceFromImageStream.this, DirectoryViewer.class);
-				intent.putExtra(DirectoryViewer.ASSET_DIRECTORY_LOCATION, BiometricsTutorialsApp.TUTORIALS_ASSETS_DIR);
-				startActivityForResult(intent, REQUEST_CODE_GET_RECORD);
-			}
-		});
+//		mRTSPAddress = (EditText) findViewById(R.id.tutorials_field_1);
+//		mRTSPAddress.setHint(getString(R.string.msg_url_for_rtsp_camera));
+//
+//		mRTSPCamera = (Button) findViewById(R.id.tutorials_button_1);
+//		mRTSPCamera.setText(getString(R.string.msg_rtsp_camera));
+//		mRTSPCamera.setOnClickListener(new View.OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//				if (validateRTSPAddress(mRTSPAddress.getText().toString())) {
+//					NMediaSource source;
+//					try {
+//						source = NMediaSource.fromUrl(mRTSPAddress.getText().toString());
+//						startEnrolling(source, null);
+//					} catch (IOException e) {
+//						showMessage(e.toString());
+//						Log.e(TAG, "Exception", e);
+//					}
+//				} else {
+//					showMessage(getString(R.string.msg_no_rtsp_url));
+//				}
+//			}
+//		});
+//		mLoadFile = (Button) findViewById(R.id.tutorials_button_2);
+//		mLoadFile.setText(getString(R.string.msg_video_file));
+//		mLoadFile.setOnClickListener(new View.OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//				Intent intent = new Intent(EnrollFaceFromImageStream.this, DirectoryViewer.class);
+//				intent.putExtra(DirectoryViewer.ASSET_DIRECTORY_LOCATION, BiometricsTutorialsApp.TUTORIALS_ASSETS_DIR);
+//				startActivityForResult(intent, REQUEST_CODE_GET_RECORD);
+//			}
+//		});
 		mLoadFromDirectory = (Button) findViewById(R.id.tutorials_button_3);
 		mLoadFromDirectory.setText(getString(R.string.msg_load_static_image_files));
 		mLoadFromDirectory.setOnClickListener(new View.OnClickListener() {
@@ -110,6 +122,7 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 			public void onClick(View v) {
 				// Loading static image files from given folder IMAGES_FOLDER_PATH
 				File dir = new File(Environment.getExternalStorageDirectory(), IMAGES_FOLDER_PATH);
+				showMessage(dir.toString());
 				if (dir.isDirectory()) {
 					File[] files = dir.listFiles(new FileFilter() {
 						@Override
@@ -181,9 +194,9 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				mRTSPAddress.setEnabled(enabled);
-				mLoadFile.setEnabled(enabled);
-				mRTSPCamera.setEnabled(enabled);
+				//mRTSPAddress.setEnabled(enabled);
+				//mLoadFile.setEnabled(enabled);
+				//mRTSPCamera.setEnabled(enabled);
 				mLoadFromDirectory.setEnabled(enabled);
 			}
 		});
@@ -198,36 +211,29 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 		});
 	}
 
-	private boolean validateRTSPAddress(String rtspUrl) {
-		return rtspUrl != null && !rtspUrl.isEmpty();
-	}
-
 	private void startEnrolling(NMediaSource source, Uri[] files) {
 		NSubject subject = new NSubject();
-		NFace face = new NFace();
+		face = new NFace();
 		face.setHasMoreSamples(true);
+
+		face.addPropertyChangeListener(facePropertyChange);
+		face.getObjects().addCollectionChangeListener(objectsCollectionChanged);
+		for (NLAttributes item : (NLAttributes[]) face.getObjects().toArray()) {
+			monitoredAttributes.add(item); item.addPropertyChangeListener(attributesPropertyChange);
+		}
 		subject.getFaces().add(face);
 
-		try {
-			NMediaReader reader = null;
-			boolean isReaderUsed = false;
-			if (source != null) {
-				reader = new NMediaReader(source, EnumSet.of(NMediaType.VIDEO), true);
-				isReaderUsed = true;
-			} else if (files == null) {
-				Throwable th = new Throwable("No source found.");
-				if (th != null) {
-					throw th;
-				}
-			}
+		//mBiometricClient.setFacesLivenessMode(NLivenessMode.ACTIVE);
+		mBiometricClient.setFacesLivenessThreshold((byte)1);
+		mBiometricClient.setFacesLivenessMode(NLivenessMode.SIMPLE);
 
+
+		try {
 			// Start extraction from stream
 			NBiometricStatus status = NBiometricStatus.NONE;
 			NBiometricTask task = mBiometricClient.createTask(EnumSet.of(NBiometricOperation.CREATE_TEMPLATE), subject);
-			if (isReaderUsed)
-				reader.start();
 
-			NImage image = isReaderUsed ? reader.readVideoSample().getImage() : NImageUtils.fromUri(this, files[0]);
+			NImage image = NImageUtils.fromUri(this, files[0]);
 
 			int i = 1;
 			while ((image != null) && (status == NBiometricStatus.NONE)) {
@@ -238,14 +244,13 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 					throw th;
 				}
 				status = task.getStatus();
+				Log.d(TAG, "Image " + i + " - Task status = " + status.toString());
 				image.dispose();
 
-				if (!isReaderUsed && (i >= files.length)) break;
+				if (i >= files.length) break;
 
-				image = isReaderUsed ? reader.readVideoSample().getImage() : NImageUtils.fromUri(this, files[i++]);
+				image = NImageUtils.fromUri(this, files[i++]);
 			}
-			if (isReaderUsed)
-				reader.stop();
 
 			// Reset HasMoreSamples value since we finished loading images
 			face.setHasMoreSamples(false);
@@ -262,43 +267,13 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 
 			// Print extraction results
 			if (status == NBiometricStatus.OK) {
-				// Get face detection details if face was detected (optional)
-				for (NFace nface : subject.getFaces()) {
-					for (NLAttributes attribute : nface.getObjects()) {
-						showMessage("Face:");
-						showMessage(String.format("\tLocation = (%d, %d), width = %d, height = %d\n", attribute.getBoundingRect().left, attribute.getBoundingRect().top,
-								attribute.getBoundingRect().width(), attribute.getBoundingRect().height()));
-
-						if ((attribute.getRightEyeCenter().confidence > 0) || (attribute.getLeftEyeCenter().confidence > 0)) {
-							showMessage("\tFound eyes:");
-							if (attribute.getRightEyeCenter().confidence > 0) {
-								showMessage(String.format("\t\tRight: location = (%d, %d), confidence = %d%n", attribute.getRightEyeCenter().x, attribute.getRightEyeCenter().y,
-										attribute.getRightEyeCenter().confidence));
-							}
-							if (attribute.getLeftEyeCenter().confidence > 0) {
-								showMessage(String.format("\t\tLeft: location = (%d, %d), confidence = %d%n", attribute.getLeftEyeCenter().x, attribute.getLeftEyeCenter().y,
-										attribute.getLeftEyeCenter().confidence));
-							}
-						}
-						if (LICENSES[0].equals("FaceClient") || LICENSES[0].equals("FaceFastExtractor")) {
-							if (attribute.getNoseTip().confidence > 0) {
-								showMessage("\tFound nose:");
-								showMessage(String.format("\t\tlocation = (%d, %d), confidence = %d%n", attribute.getNoseTip().x, attribute.getNoseTip().y, attribute.getNoseTip().confidence));
-							}
-							if (attribute.getMouthCenter().confidence > 0) {
-								showMessage("\tFound mouth:");
-								showMessage(String.format("\t\tlocation = (%d, %d), confidence = %d%n", attribute.getMouthCenter().x, attribute.getMouthCenter().y, attribute.getMouthCenter().confidence));
-							}
-						}
+				Log.d(TAG, "Template extracted.");
+				for(NFace faces : subject.getFaces()) {
+					for (NLAttributes attributes : faces.getObjects()) {
+						Log.d(TAG, "Liveness Score = " + attributes.getLivenessScore());
 					}
 				}
-				showMessage("Template extracted.");
-
-				// Save compressed template to file
-				File outputFile = new File(BiometricsTutorialsApp.TUTORIALS_OUTPUT_DATA_DIR, "face_template.dat");
-				NFile.writeAllBytes(outputFile.getAbsolutePath(), subject.getTemplateBuffer());
-				showMessage(getString(R.string.format_face_template_saved_to, outputFile.getAbsolutePath()));
-			} else {
+			}  else {
 				showMessage("Extraction failed: " + status);
 				Throwable th = task.getError();
 				if (th != null) {
@@ -314,6 +289,88 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 			if (subject != null) {
 				subject.dispose();
 			}
+		}
+	}
+
+	private final PropertyChangeListener facePropertyChange = new PropertyChangeListener() {
+		@Override
+		public void propertyChange(PropertyChangeEvent evt) {
+			if ("Image".equals(evt.getPropertyName())) {
+				//updateImage(); // At this point you know image (parameter with name "Image") was changed so you might want to redraw it
+			}
+		}
+	};
+
+	private final NCollectionChangeListener objectsCollectionChanged = new
+			NCollectionChangeListener() {
+				@Override
+				public void collectionChanged(NCollectionChangeEvent event) {
+					if (event.getAction() == NCollectionChangedAction.RESET) {
+						for (NLAttributes item : monitoredAttributes) { item.removePropertyChangeListener(attributesPropertyChange);
+						}
+						monitoredAttributes.clear();
+					} else if (event.getAction() == NCollectionChangedAction.ADD) {
+						for (Object item : event.getNewItems()) {
+							NLAttributes attributes = (NLAttributes) item;
+							monitoredAttributes.add(attributes);
+							attributes.addPropertyChangeListener(attributesPropertyChange);
+						}
+					} else if (event.getAction() ==
+							NCollectionChangedAction.REMOVE) {
+						for (Object item : event.getOldItems()) {
+							NLAttributes attributes = (NLAttributes) item;
+							monitoredAttributes.remove(attributes);
+							attributes.removePropertyChangeListener(attributesPropertyChange);
+						}
+					}
+					repaint();
+				}
+			};
+
+	private final PropertyChangeListener attributesPropertyChange = new
+			PropertyChangeListener() {
+				@Override
+				public void propertyChange(PropertyChangeEvent evt) {
+					repaint(); // You might want to redraw as NLAttribute property has changed
+				}
+			};
+
+	private void repaint()
+	{
+		NLAttributes[] attributesArray = (NLAttributes[]) face.getObjects().toArray();
+		for (int i = 0; i < attributesArray.length; i++)
+		{
+			NLAttributes attributes = attributesArray[i];
+			EnumSet<NLivenessAction> action = attributes.getLivenessAction();
+			byte score = attributes.getLivenessScore();
+			boolean rotation = action.contains(NLivenessAction.ROTATE_YAW);
+			boolean blink = action.contains(NLivenessAction.BLINK);
+			boolean keepStill = action.contains(NLivenessAction.KEEP_STILL);
+
+			if (rotation)
+			{
+				float yaw = attributes.getYaw();
+				showMessage("yaw: " + yaw);
+				float targetYaw = attributes.getLivenessTargetYaw();
+				showMessage(("target yaw: " + targetYaw));
+				if (targetYaw > yaw)
+				{
+					showMessage("rotate right");
+				}
+				if (yaw > targetYaw)
+				{
+					showMessage("rotate left");
+				}
+			}
+
+			if (blink) showMessage("Blink");
+
+			if (keepStill)
+			{
+				showMessage("Keep still " + score);
+			}
+
+
 		}
 	}
 
@@ -347,6 +404,8 @@ public class EnrollFaceFromImageStream extends BaseActivity {
 		protected void onPostExecute(Boolean result) {
 			super.onPostExecute(result);
 			hideProgress();
+
+			Log.d(TAG, "Quality = " + mBiometricClient.getFacesQualityThreshold());
 		}
 	}
 

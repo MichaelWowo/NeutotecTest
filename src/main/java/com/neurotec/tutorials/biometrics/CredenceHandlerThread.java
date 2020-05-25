@@ -48,7 +48,8 @@ public class CredenceHandlerThread extends Thread {
     private NBiometricClient mBiometricClient;
     private NSubject mNSubject;
     private boolean mIsNeurotecInit= false;
-    private static final String[] LICENSES = new String[]{"FaceClient"};
+    //private static final String[] LICENSES = new String[]{"FaceClient"};
+    private static final String[] LICENSES = new String[]{"FaceFastExtractor"};
     private Context mAppCtx;
     //public Handler mHandler;
     private static NFace sFace = new NFace();
@@ -86,6 +87,7 @@ public class CredenceHandlerThread extends Thread {
                 @Override
                 public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
                     Log.d(CredenceLivenessDetection.TAG, "propertyChangeEvent");
+                    repaint();
                 }
             });
 
@@ -125,11 +127,21 @@ public class CredenceHandlerThread extends Thread {
                 }
             });
 
+            for (NLAttributes item:
+                    sFace.getObjects()) {
+                item.addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
+                        repaint();
+                    }
+                });
+
+            }
 
             //Set face template size (recommended, for enroll to database, is large) (optional)
             mBiometricClient.setFacesTemplateSize(NTemplateSize.LARGE);
-            mBiometricClient.setFacesLivenessMode(NLivenessMode.ACTIVE);
-            mBiometricClient.setFacesLivenessThreshold((byte) 50);
+            mBiometricClient.setFacesLivenessMode(NLivenessMode.SIMPLE);
+            mBiometricClient.setFacesLivenessThreshold((byte) 10);
 
             sNStatus = NBiometricStatus.NONE;
             sSubject.getFaces().add(sFace);
@@ -165,6 +177,7 @@ public class CredenceHandlerThread extends Thread {
                             Log.d(TAG, "sImageHandler sSubject getFace Size =" + sSubject.getFaces().size());
                             Log.d(TAG, "sImageHandler sSubject getFace getObjects Size =" + sSubject.getFaces().get(0).getObjects().size());
                             if (sTask.getStatus() == NBiometricStatus.OK) {
+                                Log.i(TAG, "Template extracted");
                                 if (sSubject.getFaces().get(0).getObjects().size() > 1) {
                                     // Get detection details if the face was detected
                                     for (NLAttributes attributes :
@@ -189,7 +202,6 @@ public class CredenceHandlerThread extends Thread {
                                         }
                                     }
 
-                                    Log.i(TAG, "Template extracted");
                                     // Save compressed template to file
                                     Log.i(TAG, "Template saved successfully");
                                 }
@@ -209,25 +221,22 @@ public class CredenceHandlerThread extends Thread {
 
     static void repaint()
     {
-//        NLAttributes[] attributesArray = null;
-//        Log.d(CredenceLivenessDetection.TAG, "repaint, sSubject.getFaces() Size = " + sSubject.getFaces().size());
-//        if(sSubject.getFaces().size()>0) {
-//            Log.d(CredenceLivenessDetection.TAG, "repaint, sSubject sFace = " + sSubject.getFaces().get(0).toString());
-//            if(sSubject.getFaces().get(0).getObjects().size()>0){
-//                attributesArray = (NLAttributes[])sSubject.getFaces().get(0).getObjects().toArray();
-//                Log.d(CredenceLivenessDetection.TAG, "repaint, sSubject sFace attributesArray Size = " + attributesArray.length);
-//            }
-//        }
+        NLAttributes[] attributesArray = null;
+        Log.d(CredenceLivenessDetection.TAG, "repaint, sSubject.getFaces() Size = " + sSubject.getFaces().size());
+        if(sSubject.getFaces().size()>0) {
+            Log.d(CredenceLivenessDetection.TAG, "repaint, sSubject sFace = " + sSubject.getFaces().get(0).toString());
+            if(sSubject.getFaces().get(0).getObjects().size()>0){
+                attributesArray = (NLAttributes[])sSubject.getFaces().get(0).getObjects().toArray();
+                Log.d(CredenceLivenessDetection.TAG, "repaint, sSubject sFace attributesArray Size = " + attributesArray.length);
+            }
+        }
 
+        if(null != attributesArray){
+            Log.d(TAG, "repaint, attributesArray Size = " + attributesArray.length);
 
-
-        if(null != sMonitorredAtributes){
-
-            Log.d(TAG, "sMonitorredAtributes Size = " + sMonitorredAtributes.size());
-
-            for (int i = 0; i < sMonitorredAtributes.size(); i++)
+            for (int i = 0; i < attributesArray.length; i++)
             {
-                NLAttributes attributes = sMonitorredAtributes.get(i);
+                NLAttributes attributes = attributesArray[i];
                 EnumSet<NLivenessAction> action = attributes.getLivenessAction();
                 Log.d(CredenceLivenessDetection.TAG, "repaint, attributes action size = " + attributes.getLivenessAction().size());
                 if(attributes.getLivenessAction().size()>1){
@@ -260,6 +269,8 @@ public class CredenceHandlerThread extends Thread {
                     Log.i(CredenceLivenessDetection.TAG, "Keep still");
                 }
             }
+        }else{
+            Log.w(TAG, "attributes array is null");
         }
     }
 

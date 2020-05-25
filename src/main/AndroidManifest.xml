@@ -15,8 +15,9 @@
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
 	<uses-permission android:name="android.permission.RECORD_AUDIO" />
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.WRITE_SETTINGS" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
 	<uses-feature android:name="android.hardware.camera" />
 
@@ -41,6 +42,16 @@
         <activity
 			android:name=".CredenceLivenessDetection"
 			android:label="Credence Liveness test"
+			android:screenOrientation="portrait">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+
+				<category android:name="com.neurotec.tutorials.biometrics.CATEGORY_NEUROTEC_TUTORIAL" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".CredencePerformancesTest"
+			android:label="Credence Performances test"
 			android:screenOrientation="portrait">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />

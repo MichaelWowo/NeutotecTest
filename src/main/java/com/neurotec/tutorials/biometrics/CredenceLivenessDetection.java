@@ -1,11 +1,14 @@
 package com.neurotec.tutorials.biometrics;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
@@ -13,10 +16,18 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Environment;
 import android.os.Looper;
 import android.os.Message;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -52,7 +63,9 @@ import com.neurotec.devices.NDeviceManager;
 import com.neurotec.devices.NDeviceType;
 import com.neurotec.images.NImage;
 import com.neurotec.io.NFile;
+import com.neurotec.io.NStream;
 import com.neurotec.lang.NCore;
+import com.neurotec.media.NVideoFormat;
 import com.neurotec.plugins.NPlugin;
 import com.neurotec.plugins.NPluginState;
 import com.neurotec.samples.app.BaseActivity;
@@ -68,6 +81,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -87,12 +101,13 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
     // If you are using a TRIAL version - choose any of them.
 
     //private static final String[] LICENSES = new String[]{"FaceExtractor"};
-    private static final String[] LICENSES = new String[]{"FaceClient"};
-    //private static final String[] LICENSES = new String[]{"FaceFastExtractor"};
+    //private static final String[] LICENSES = new String[]{"FaceClient"};
+    private static final String[] LICENSES = new String[]{"FaceFastExtractor"};
 
     //=========================================================================
 
-    public static final String TAG = "CPC_DEV";
+    public static final String TAG = "CID_DEV";
+    private static final String IMAGES_FOLDER_PATH = "/Neurotechnology/";
     private NFaceView mFaceView;
     private Button mButtonExtract;
     private Button mSelectSource;
@@ -102,7 +117,11 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
 
     private NBiometricClient mBiometricClient;
     private NSubject mNSubject;
-    private CredenceHandlerThread mNeurotechThread;
+    private CredenceHandlerThreadCustom mNeurotechThread;
+    private static boolean sIsrecording = false;
+    private Bitmap[] mImageStream;
+    private int imageCounter = 0;
+    CountDownTimer mRecordingTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,9 +129,8 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
         NCore.setContext(this);
         setContentView(R.layout.tutorial_credence_face_liveness);
 
-        mNeurotechThread = new CredenceHandlerThread(getApplicationContext());
+        mNeurotechThread = new CredenceHandlerThreadCustom(getApplicationContext());
         mNeurotechThread.start();
-
 
         mContext = this;
         mCamera = null;
@@ -128,7 +146,29 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
         mButtonExtract.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 //new InitializationTask().execute();
+                if(!sIsrecording){
+                    sIsrecording = true;
+                    mImageStream = new Bitmap[100];
+                    mRecordingTimer = new CountDownTimer(15000, 500){
+                        public void onTick(long millisUntilFinished){
+                            //
+                        }
+                        public  void onFinish(){
+                            Log.d(TAG, "Timer Finished");
+                            sIsrecording = false;
+                            detectFace();
+                        }
+                    };
+                    Log.d(TAG, "Start recording");
+                    mRecordingTimer.start();
+                }else{
+                    mRecordingTimer.cancel();
+                    sIsrecording = false;
+                    imageCounter = 0;
+                    Log.d(TAG, "stop recording (User)");
+                }
             }
         });
 
@@ -146,30 +186,44 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
         }
     }
 
-    private void init() {
-        mBiometricClient = new NBiometricClient();
-        mBiometricClient.setFacesDetectAllFeaturePoints(true);
-        mBiometricClient.setFacesDetectBaseFeaturePoints(true);
-        mBiometricClient.setFacesRecognizeExpression(true);
-        mBiometricClient.setFacesDetectProperties(true);
-        mBiometricClient.setFacesDetermineGender(true);
-        mBiometricClient.setFacesDetermineAge(true);
-        // Initialize NBiometricClient
-        mBiometricClient.initialize();
-        mNSubject = new NSubject();
-        mIsNeurotecInit = true;
+
+    public void recordFace(Bitmap img){
+
+        if(sIsrecording){
+            if(imageCounter < 100) {
+                mImageStream[imageCounter] = img;
+                imageCounter++;
+            } else {
+                sIsrecording = false;
+                mRecordingTimer.cancel();
+                detectFace();
+            }
+        }
     }
 
-    private boolean validateRTSPAddress(String rtspUrl) {
-        return rtspUrl != null && !rtspUrl.isEmpty();
-    }
+    public void detectFace(){
 
-    public void detectFace(Bitmap img){
+        Log.d(TAG, "Image stream length = " + imageCounter);
 
         Message msg = new Message();
-        msg.obj = img;
-        mNeurotechThread.sImageHandler.sendMessage(msg);
+        Bitmap[] finalStream = new Bitmap[imageCounter];
+        for(int i = 0; i < imageCounter; i++)
+            finalStream[i] = mImageStream[i];
+//        msg.obj = finalStream;
+//        mNeurotechThread.sImageHandler.sendMessage(msg);
+        int result = mNeurotechThread.startEnrolling(finalStream);
+        imageCounter = 0;
         //detectFaceNeurotecTask(img);
+        showMessage("Liveness result = " + result);
+    }
+
+    private void showMessage(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mStatus.append(message + "\n");
+            }
+        });
     }
 
     //-----------------------------------------------------------
@@ -341,9 +395,15 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
 
         /* Need to fix color format of raw camera preview frames. */
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        Rect rect = new Rect(0, 0, 320, 240);
-        YuvImage yuvimage = new YuvImage(bitmapBytes, ImageFormat.NV21, 320, 240, null);
+        Rect rect = new Rect(0, 0, P_WIDTH, P_HEIGHT);
+        YuvImage yuvimage = new YuvImage(bitmapBytes, ImageFormat.NV21, P_WIDTH, P_HEIGHT, null);
         yuvimage.compressToJpeg(rect, 100, outStream);
+
+//        try {
+//            NImage image = NImage.fromStream(NStream.fromOutputStream(outStream));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         /* Save fixed color image as final good Bitmap. */
         Bitmap bm = BitmapFactory.decodeByteArray(outStream.toByteArray(), 0, outStream.size());
@@ -351,15 +411,17 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
         /* On CredenceTWO device's captured image is rotated by 270 degrees. To fix this rotate
          * image by another 90 degrees to have it right-side-up.
          */
-        bm = Utils.rotateBitmap(bm, 270);
+        bm = Utils.rotateBitmap(bm, 90);
 
         /* Detect face on finalized Bitmap image. */
         long start_time = System.currentTimeMillis();
 
         //TODO Call the detectFace from Neurotrech Here
-        detectFace(bm);
-                    if (null == mCamera || !mInPreview)
-                return;
+        //detectFace(bm);
+        recordFace(bm);
+
+        if (null == mCamera || !mInPreview)
+            return;
 
             /* Tell camera to start preview callbacks again. */
             mCamera.setPreviewCallback(mCameraPreviewCallback);
@@ -506,8 +568,8 @@ public class CredenceLivenessDetection extends BaseActivity implements SurfaceHo
             previewSize.width = P_WIDTH;
             previewSize.height = P_HEIGHT;
 
-             mPreviewFrameLayout.getLayoutParams().width = (int) (previewSize.height * 2.5);
-             mPreviewFrameLayout.getLayoutParams().height = (int) (previewSize.width * 2.5);
+             mPreviewFrameLayout.getLayoutParams().width = (int) (previewSize.height * 2);
+             mPreviewFrameLayout.getLayoutParams().height = (int) (previewSize.width  * 2);
              mPreviewFrameLayout.setAspectRatio((previewSize.width) / (double) (previewSize.height));
 
             ViewGroup.LayoutParams drawingViewLayoutParams = mDrawingView.getLayoutParams();
