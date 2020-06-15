@@ -31,7 +31,7 @@ buildscript {
 		jcenter()
 	}
 	dependencies {
-		classpath 'com.android.tools.build:gradle:3.6.3'
+		classpath 'com.android.tools.build:gradle:3.2.1'
 	}
 }
 
@@ -39,7 +39,7 @@ android {
 	compileSdkVersion 27
 
 	defaultConfig {
-		minSdkVersion 19
+		minSdkVersion 23
 		targetSdkVersion 26
 
 		ndk {
@@ -127,32 +127,9 @@ prepareNdfFiles.dependsOn(clean)
 build.finalizedBy(publishApk)
 
 dependencies {
-	implementation ":neurotec-gui-android"
-	implementation ":neurotec-media-processing-android"
-	implementation ":neurotec-biometrics-android"
-	implementation ":neurotec-biometrics-client-android"
-
-	implementation ":neurotec-devices-fscanners-aratek-trustfinger-android"
-	implementation ":neurotec-devices-fscanners-suprema-biomini-android"
-	implementation ":neurotec-devices-fscanners-ekemp-android"
-	implementation ":neurotec-devices-fscanners-bluefin-android"
-	implementation ":neurotec-devices-multimodal-credenceid-android"
-	implementation ":neurotec-devices-fscanners-digitalpersona-uareu-android"
-	implementation ":neurotec-devices-fscanners-futronic-android"
-	implementation ":neurotec-devices-fscanners-aratek-android"
-	implementation ":neurotec-devices-fscanners-secugen-android"
-	implementation ":neurotec-devices-fscanners-integratedbiometrics-android"
-	implementation ":neurotec-devices-fscanners-nextbiometrics-android"
-	implementation ":neurotec-devices-fscanners-greenbit-android"
-	implementation ":neurotec-devices-fscanners-zkteco-android"
-	implementation ":neurotec-devices-fscanners-morpho-android"
-	implementation ":neurotec-devices-fscanners-bitel-android"
-	implementation ":neurotec-devices-irisscanners-iritech-irishield-android"
-	implementation ":neurotec-devices-irisscanners-mantra-android"
-	implementation ":neurotec-devices-media-android"
-	implementation ":neurotec-devices-android"
-	implementation(name:'neurotec-biometrics-gui-android', ext:'aar')
-	implementation project(":tutorials-utils")
+	implementation fileTree(include: ['*.jar'], dir: 'libs')
+	api "com.android.support:support-compat:27.1.1"
+	api ":jna"
 }
 
 repositories {

@@ -8,8 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -17,6 +15,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 
 import java.text.Collator;
 import java.util.ArrayList;
@@ -27,10 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.neurotec.lang.NCore;
-import com.neurotec.licensing.gui.ActivationActivity;
 import com.neurotec.plugins.NDataFileManager;
 
-public class BiometricsTutorials extends ListActivity {
+public class BiometricsTutorials extends ListActivity  {
 
 	// ===========================================================
 	// Private static fields
@@ -127,10 +126,10 @@ public class BiometricsTutorials extends ListActivity {
 	private String[] getNotGrantedPermissions() {
 		List<String> neededPermissions = new ArrayList<String>();
 
-		int storagePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-		int phonePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE);
-		int cameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
-		int microphonePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO);
+		int storagePermission = getApplicationContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+		int phonePermission = getApplicationContext().checkSelfPermission(Manifest.permission.READ_PHONE_STATE);
+		int cameraPermission = getApplicationContext().checkSelfPermission(Manifest.permission.CAMERA);
+		int microphonePermission = getApplicationContext().checkSelfPermission(Manifest.permission.RECORD_AUDIO);
 
 		if (phonePermission != PackageManager.PERMISSION_GRANTED) {
 			neededPermissions.add(Manifest.permission.READ_PHONE_STATE);
@@ -167,24 +166,6 @@ public class BiometricsTutorials extends ListActivity {
 		if (neededPermissions.length != 0) {
 			requestPermissions(neededPermissions);
 		}
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.options_menu, menu);
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-			case R.id.action_activation: {
-				startActivity(new Intent(this, ActivationActivity.class));
-				break;
-			}
-		}
-		return true;
 	}
 
 	public void onRequestPermissionsResult(int requestCode, final String permissions[], int[] grantResults) {
